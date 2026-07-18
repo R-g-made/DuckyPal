@@ -1,4 +1,4 @@
-from aiogram import Router, types
+from aiogram import Router, types, Bot
 from aiogram.filters import CommandStart
 import asyncio
 from datetime import datetime, timedelta
@@ -17,7 +17,7 @@ from app.core import messages
 router = Router()
 
 @router.message(CommandStart())
-async def cmd_start(message: types.Message, bot: types.Bot, command: types.BotCommand = None):
+async def cmd_start(message: types.Message, bot: Bot, command: types.BotCommand = None):
     """
     Handler for /start command.
     Registers user and handles referrals if present.

@@ -1,4 +1,4 @@
-from aiogram import Router, types, F
+from aiogram import Router, types, F, Bot
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.exceptions import TelegramBadRequest
 import asyncio
@@ -19,7 +19,7 @@ from app.core import messages
 router = Router()
 
 @router.message(F.photo)
-async def handle_food_photo(message: types.Message, bot):
+async def handle_food_photo(message: types.Message, bot: Bot):
     """
     Handler for food photos.
     Downloads the image and sends it to AIService.
