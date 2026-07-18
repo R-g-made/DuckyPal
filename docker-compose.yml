@@ -1,11 +1,29 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:14
+    container_name: utyapal_db
+    restart: always
+    environment:
+      POSTGRES_USER: duckypal
+      POSTGRES_PASSWORD: fe53sdgg_4po_a2ds
+      POSTGRES_DB: utyapal_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U duckypal -d utyapal_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   bot:
     build: .
     container_name: utyapal_bot
     restart: always
-    network_mode: "host"
+    depends_on:
+      db:
+        condition: service_healthy
     env_file:
       - .env
     logging:
@@ -13,3 +31,6 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+
+volumes:
+  postgres_data:
