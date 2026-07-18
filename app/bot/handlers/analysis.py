@@ -66,8 +66,8 @@ async def handle_food_photo(message: types.Message, bot):
                 parse_mode="HTML"
             )
             # Deduct attempt even if it's not food
-            with SessionLocal() as db:
-                user_crud.use_analysis_attempt(db, message.from_user.id)
+            # with SessionLocal() as db:
+            #     user_crud.use_analysis_attempt(db, message.from_user.id)
             return
 
         # 3. Process results and prepare response

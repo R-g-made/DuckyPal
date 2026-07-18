@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.git/
+.gitignore
+sql_app.db
+tests/
+Dockerfile
+docker-compose.yml
+README.md
