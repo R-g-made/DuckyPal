@@ -5,10 +5,9 @@ services:
     build: .
     container_name: utyapal_bot
     restart: always
+    network_mode: "host"
     env_file:
       - .env
-    volumes:
-      - ./sql_app.db:/app/sql_app.db
     logging:
       driver: "json-file"
       options:
