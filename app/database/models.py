@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Enum, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Date, Enum, ForeignKey, Float, BigInteger
 from datetime import datetime
 import enum
 from app.database.connection import Base
@@ -40,7 +40,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, unique=True, index=True)
+    telegram_id = Column(BigInteger, unique=True, index=True)
     username = Column(String, nullable=True)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
@@ -71,7 +71,7 @@ class UserAction(Base):
     __tablename__ = "user_actions"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, index=True)
+    telegram_id = Column(BigInteger, index=True)
     action_type = Column(Enum(ActionType), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -82,7 +82,7 @@ class PushNotification(Base):
     __tablename__ = "push_notifications"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, ForeignKey("users.telegram_id"), index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"), index=True)
     push_type = Column(String) # 'farm', 'leaderboard', 'attempts'
     message_text = Column(String)
     sent_at = Column(DateTime, default=datetime.utcnow)
@@ -94,7 +94,7 @@ class Invite(Base):
     __tablename__ = "invites"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, index=True, unique=True) # The invited user
+    telegram_id = Column(BigInteger, index=True, unique=True) # The invited user
     invite_type = Column(Enum(InviteType), nullable=False)
     referrer_id = Column(String, nullable=False) # Can be TG ID or Ad ID
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -106,7 +106,7 @@ class UserVisit(Base):
     __tablename__ = "user_visits"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, index=True)
+    telegram_id = Column(BigInteger, index=True)
     visit_time = Column(DateTime, default=datetime.utcnow)
     
     attribution_type = Column(Enum(AttributionType), nullable=False)
@@ -119,7 +119,7 @@ class PhotoAnalysis(Base):
     __tablename__ = "photo_analyses"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, index=True)
+    telegram_id = Column(BigInteger, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # AI Results & Description
@@ -146,7 +146,7 @@ class FarmCard(Base):
     __tablename__ = "farm_cards"
 
     id = Column(Integer, primary_key=True, index=True) # Уникальный внутренний ID
-    telegram_id = Column(Integer, ForeignKey("users.telegram_id"), index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"), index=True)
     food_name = Column(String, nullable=True)    # Краткое наименование еды
     points_per_hour = Column(Float, default=0.0) # Сколько поинтов приносит владельцу
     is_active = Column(Boolean, default=True)    # Флаг активности
@@ -169,7 +169,7 @@ class UserLeague(Base):
     __tablename__ = "user_leagues"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, ForeignKey("users.telegram_id"), index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"), index=True)
     group_id = Column(Integer, ForeignKey("groups.id"), index=True)
     league = Column(Enum(League), default=League.BEGINNER)
     points = Column(Float, default=0.0) # Points within the current league/group
@@ -197,7 +197,7 @@ class UserMultiplier(Base):
     __tablename__ = "user_multipliers"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, ForeignKey("users.telegram_id"), index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"), index=True)
     multiplier = Column(Float, default=1.0)
     expires_at = Column(DateTime, nullable=True) # Optional for time-based
     uses_left = Column(Integer, nullable=True)   # Optional for usage-based
@@ -212,7 +212,7 @@ class UserPushSchedule(Base):
     __tablename__ = "user_push_schedules"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, ForeignKey("users.telegram_id"), index=True, unique=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"), index=True, unique=True)
     
     # Время приемов пищи (храним как строки HH:MM)
     meal_1_time = Column(String, nullable=True) # Завтрак
@@ -236,11 +236,11 @@ class LeaderboardMovement(Base):
     __tablename__ = "leaderboard_movements"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, ForeignKey("users.telegram_id"), index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"), index=True)
     group_id = Column(Integer, ForeignKey("groups.id"), index=True)
     old_rank = Column(Integer, nullable=True)
     new_rank = Column(Integer, nullable=False)
-    overtook_telegram_id = Column(Integer, nullable=True) # TG ID (или ID бота) того, кого обогнали
+    overtook_telegram_id = Column(BigInteger, nullable=True) # TG ID (или ID бота) того, кого обогнали
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
