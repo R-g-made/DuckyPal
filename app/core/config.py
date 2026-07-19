@@ -15,11 +15,21 @@ class Settings:
     # Database selection logic
     USE_SQLITE: bool = os.getenv("USE_SQLITE", "True").lower() == "true"
     SQLITE_URL: str = os.getenv("SQLITE_URL", "sqlite:///./sql_app.db")
-    POSTGRES_URL: str = os.getenv("POSTGRES_URL")
+    
+    # Postgres components
+    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "duckypal")
+    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD")
+    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "utyapal_db")
+    POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "db")
+    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
     
     @property
     def DATABASE_URL(self) -> str:
-        return self.SQLITE_URL if self.USE_SQLITE else self.POSTGRES_URL
+        if self.USE_SQLITE:
+            return self.SQLITE_URL
+        
+        # Build Postgres URL from components to avoid interpolation issues in .env
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
     
     # Proxy settings
     PROXY_URL: str = os.getenv("PROXY_URL")  # e.g., http://proxy.server:3128
