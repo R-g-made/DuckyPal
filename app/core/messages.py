@@ -109,8 +109,8 @@ ONBOARDING_PAGES = {
 
 # Магазин
 SHOP_MAIN = (
-    '<a href="https://i.ibb.co/60kbDg0r/HIV-l2.png">&#8203;</a>' # Пока временная картинка
-    "Привет, это тайный магазин Ути <tg-emoji emoji-id=\"5350726942335214142\">🕵️‍♂️</tg-emoji>, здесь ты можешь купить разные бонусы!\n\n"
+    '<a href="https://i.ibb.co/FqjFKYg6/Invite-v1.png">&#8203;</a>' # Пока временная картинка
+    "Привет, это тайный магазин Ути <tg-emoji emoji-id=\"5399854298685285658\">😜</tg-emoji>, здесь ты можешь купить разные бонусы!\n\n"
     "<blockquote>До обновления: <b>{time_left}</b></blockquote>"
 )
 SHOP_PURCHASE_SUCCESS = "Успешная покупка! ✅\n\n<blockquote>Ваш бонус уже начислен.</blockquote>"

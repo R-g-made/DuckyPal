@@ -128,14 +128,17 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             if not available_items:
                 builder.row(types.InlineKeyboardButton(
                     text="Пока пусто", 
-                    callback_data="none"
+                    callback_data="none",
+                    icon_custom_emoji_id= "5372833199137266697"
                 ))
             else:
                 for item in available_items:
                     price = int(item.base_price * league_multiplier)
+
                     builder.row(types.InlineKeyboardButton(
-                        text=f"{item.name} — {price} поинтов", 
-                        callback_data=f"buy_item_{item.code}"
+                        text=f"{item.name} - {price} баллов", 
+                        callback_data=f"buy_item_{item.code}",
+                        icon_custom_emoji_id= "5350573405844317180"
                     ))
             
             builder.row(types.InlineKeyboardButton(text="В меню", callback_data="back_to_main", icon_custom_emoji_id="5877629862306385808"))

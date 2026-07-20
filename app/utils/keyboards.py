@@ -26,7 +26,7 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
     Layout:
     1. Гастро-ферма
     2. Лидерборд
-    3. Подписка
+    3. Магазин
     4. Пригласить друзей
     5. Faq | Поддержка (2 in row)
     """
@@ -35,7 +35,7 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
     # Single row buttons
     builder.row(types.InlineKeyboardButton(text="Гастро-ферма", callback_data="gastro_farm", icon_custom_emoji_id="5472178859300363509"))
     builder.row(types.InlineKeyboardButton(text="Лидерборд", callback_data="leaderboard", icon_custom_emoji_id="5190428893013615098"))
-    builder.row(types.InlineKeyboardButton(text="Магазин", callback_data="shop_main", icon_custom_emoji_id="5201990176175299013"))
+    builder.row(types.InlineKeyboardButton(text="Магазин", callback_data="shop_main", icon_custom_emoji_id="5193065010795911968"))
     builder.row(types.InlineKeyboardButton(text="Пригласить друзей", callback_data="invite_friends", icon_custom_emoji_id="5395357957552609518",style="primary"))
     
     # Two buttons in one row
