@@ -200,13 +200,16 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             if page < 3:
                 next_cb = f"how_it_works_onboard_{page+1}" if is_onboarding else f"how_it_works_{page+1}"
                 nav_buttons.append(types.InlineKeyboardButton(text="Дальше", callback_data=next_cb))
+            elif is_onboarding:
+                # На последней странице онбординга добавляем кнопку "Начать!"
+                nav_buttons.append(types.InlineKeyboardButton(text="Начать!", callback_data="back_to_main", icon_custom_emoji_id = "5352775315317888831"))
             
             if nav_buttons:
                 builder.row(*nav_buttons)
             
             # Back to menu row / Skip for onboarding
             if is_onboarding:
-                builder.row(types.InlineKeyboardButton(text="Пропустить", callback_data="back_to_main"))
+                builder.row(types.InlineKeyboardButton(text="Пропустить", callback_data="back_to_main", icon_custom_emoji_id = "5399984887165919551"))
             else:
                 builder.row(types.InlineKeyboardButton(text="В меню", callback_data="back_to_main", icon_custom_emoji_id = "5877629862306385808"))
             
