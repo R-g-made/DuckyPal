@@ -182,7 +182,9 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             return
 
         elif callback.data.startswith("how_it_works_"):
-            page = int(callback.data.split("_")[-1])
+            parts = callback.data.split("_")
+            page = int(parts[-1])
+            is_onboarding = "onboard" in parts
             
             current_page = messages.FAQ_PAGES.get(page)
             text = f'<a href="{current_page["img"]}">&#8203;</a>{current_page["text"]}'
@@ -192,15 +194,21 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             # Navigation row
             nav_buttons = []
             if page > 1:
-                nav_buttons.append(types.InlineKeyboardButton(text="Назад", callback_data=f"how_it_works_{page-1}", icon_custom_emoji_id = "5375049032894819368"))
+                prev_cb = f"how_it_works_onboard_{page-1}" if is_onboarding else f"how_it_works_{page-1}"
+                nav_buttons.append(types.InlineKeyboardButton(text="Назад", callback_data=prev_cb, icon_custom_emoji_id = "5375049032894819368"))
+            
             if page < 3:
-                nav_buttons.append(types.InlineKeyboardButton(text="Дальше", callback_data=f"how_it_works_{page+1}"))
+                next_cb = f"how_it_works_onboard_{page+1}" if is_onboarding else f"how_it_works_{page+1}"
+                nav_buttons.append(types.InlineKeyboardButton(text="Дальше", callback_data=next_cb))
             
             if nav_buttons:
                 builder.row(*nav_buttons)
             
-            # Back to menu row
-            builder.row(types.InlineKeyboardButton(text="В меню", callback_data="back_to_main", icon_custom_emoji_id = "5877629862306385808"))
+            # Back to menu row / Skip for onboarding
+            if is_onboarding:
+                builder.row(types.InlineKeyboardButton(text="Пропустить", callback_data="back_to_main"))
+            else:
+                builder.row(types.InlineKeyboardButton(text="В меню", callback_data="back_to_main", icon_custom_emoji_id = "5877629862306385808"))
             
             await callback.message.edit_text(
                 text=text,
@@ -260,6 +268,7 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             except TelegramBadRequest:
                 pass
         elif callback.data == "back_to_main":
+            show_x2_offer = False
             with SessionLocal() as db:
                 user = user_crud.get_user_with_recharge(db, callback.from_user.id)
                 if not user:
@@ -292,6 +301,18 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
                         bonus_info = f"активирован (осталось {active_mult.uses_left} исп.)"
                     
                     multiplier_text = f"\n\n<blockquote>🏎 <b>Бонус x{int(active_mult.multiplier)} {bonus_info}</b></blockquote>"
+
+                # Check if we should show the delayed x2 offer
+                from app.database.crud import push as push_crud
+                schedule = push_crud.get_push_schedule(db, callback.from_user.id)
+                meals_count = 0
+                if schedule:
+                    if schedule.meal_1_time: meals_count += 1
+                    if schedule.meal_2_time: meals_count += 1
+                    if schedule.meal_3_time: meals_count += 1
+                
+                if meals_count == 0:
+                    show_x2_offer = True
             
             response_text = messages.MAIN_MENU.format(
                 attempts=attempts,
@@ -305,10 +326,29 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
                 parse_mode="HTML",
                 reply_markup=get_start_inline_keyboard()
             )
+
+            if show_x2_offer:
+                async def delayed_offer():
+                    import asyncio
+                    await asyncio.sleep(10) # 10 seconds delay after entering menu
+                    offer_text = messages.OFFER_X2
+                    builder = InlineKeyboardBuilder()
+                    builder.row(types.InlineKeyboardButton(text="Хочу! 🙋‍♂️", callback_data="onboard_start|2"))
+                    
+                    try:
+                        await callback.message.answer(offer_text, parse_mode="HTML", reply_markup=builder.as_markup())
+                    except Exception as e:
+                        import logging
+                        logging.error(f"Error sending delayed x2 offer from menu: {e}")
+
+                import asyncio
+                asyncio.create_task(delayed_offer())
+
             try:
                 await callback.answer()
             except TelegramBadRequest:
                 pass
+            return
         else:
             try:
                 await callback.answer()

@@ -87,6 +87,22 @@ async def cmd_start(message: types.Message, bot: Bot, command: types.BotCommand 
         attempts = user.analysis_attempts
         points = int(user.points)
         
+        if is_new_user:
+            # Show onboarding (How it works) for new users
+            current_page = messages.FAQ_PAGES.get(1)
+            text = f'<a href="{current_page["img"]}">&#8203;</a>{current_page["text"]}'
+            
+            builder = InlineKeyboardBuilder()
+            builder.row(types.InlineKeyboardButton(text="Дальше", callback_data="how_it_works_onboard_2"))
+            builder.row(types.InlineKeyboardButton(text="Пропустить", callback_data="back_to_main"))
+            
+            await message.answer(
+                text=text,
+                parse_mode="HTML",
+                reply_markup=builder.as_markup()
+            )
+            return
+
         # Check for active multiplier
         active_mult = user_crud.get_active_multiplier(db, telegram_id)
         multiplier_text = ""
@@ -126,7 +142,7 @@ async def cmd_start(message: types.Message, bot: Bot, command: types.BotCommand 
         reply_markup=get_start_inline_keyboard()
     )
     
-    if show_x2_offer:
+    if show_x2_offer and not is_new_user:
         async def delayed_offer():
             await asyncio.sleep(20)
             # Send a separate message for the bonus offer
