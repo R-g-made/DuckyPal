@@ -89,7 +89,7 @@ async def cmd_start(message: types.Message, bot: Bot, command: types.BotCommand 
         
         if is_new_user:
             # Show onboarding (How it works) for new users
-            current_page = messages.FAQ_PAGES.get(1)
+            current_page = messages.ONBOARDING_PAGES.get(1)
             text = f'<a href="{current_page["img"]}">&#8203;</a>{current_page["text"]}'
             
             builder = InlineKeyboardBuilder()

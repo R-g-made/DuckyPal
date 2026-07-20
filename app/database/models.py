@@ -247,3 +247,27 @@ class LeaderboardMovement(Base):
     def __repr__(self):
         return f"<LeaderboardMovement(user={self.telegram_id}, group={self.group_id}, {self.old_rank}->{self.new_rank})>"
 
+class ShopItem(Base):
+    __tablename__ = "shop_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    code = Column(String, unique=True, index=True) # e.g., 'extra_attempt'
+    base_price = Column(Float, default=250.0)
+    is_active = Column(Boolean, default=True)
+
+    def __repr__(self):
+        return f"<ShopItem(name={self.name}, price={self.base_price})>"
+
+class UserShopPurchase(Base):
+    __tablename__ = "user_shop_purchases"
+
+    id = Column(Integer, primary_key=True, index=True)
+    telegram_id = Column(BigInteger, ForeignKey("users.telegram_id"), index=True)
+    item_id = Column(Integer, ForeignKey("shop_items.id"), index=True)
+    price_paid = Column(Float, nullable=False)
+    purchased_at = Column(DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<UserShopPurchase(user={self.telegram_id}, item={self.item_id})>"
+

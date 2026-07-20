@@ -7,7 +7,9 @@ from app.database.crud import action as action_crud
 from app.database.crud import farm as farm_crud
 from app.database.crud import league as league_crud
 from app.database.crud import user as user_crud
+from app.database.crud import shop as shop_crud
 from app.database.models import ActionType, League
+import logging
 from app.utils.keyboards import get_start_inline_keyboard, get_invite_keyboard
 from app.utils import points as points_utils
 from app.core import messages
@@ -94,6 +96,97 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
     """
     Universal handler for logging all button clicks.
     """
+    if callback.data == "shop_main":
+        with SessionLocal() as db:
+            # Calculate time until 12h reset
+            now = datetime.utcnow()
+            next_reset_hour = ((now.hour // 12) + 1) * 12
+            if next_reset_hour >= 24:
+                next_reset = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+            else:
+                next_reset = now.replace(hour=next_reset_hour, minute=0, second=0, microsecond=0)
+            
+            remaining = next_reset - now
+            hours, remainder = divmod(int(remaining.total_seconds()), 3600)
+            minutes, _ = divmod(remainder, 60)
+            time_left = f"{hours}ч {minutes}м"
+
+            # Get shop items
+            items = shop_crud.get_active_shop_items(db)
+            user_league = league_crud.join_league_group(db, callback.from_user.id)
+            league_multiplier = points_utils.get_league_multiplier(user_league.league)
+            
+            builder = InlineKeyboardBuilder()
+            
+            # Filter items based on user limits (2 per 12 hours)
+            available_items = []
+            for item in items:
+                purchase_count = shop_crud.get_user_purchases_today(db, callback.from_user.id, item.code)
+                if purchase_count < 2:
+                    available_items.append(item)
+            
+            if not available_items:
+                builder.row(types.InlineKeyboardButton(
+                    text="Пока пусто", 
+                    callback_data="none"
+                ))
+            else:
+                for item in available_items:
+                    price = int(item.base_price * league_multiplier)
+                    builder.row(types.InlineKeyboardButton(
+                        text=f"{item.name} — {price} поинтов", 
+                        callback_data=f"buy_item_{item.code}"
+                    ))
+            
+            builder.row(types.InlineKeyboardButton(text="В меню", callback_data="back_to_main", icon_custom_emoji_id="5877629862306385808"))
+
+            await callback.message.edit_text(
+                text=messages.SHOP_MAIN.format(time_left=time_left),
+                parse_mode="HTML",
+                reply_markup=builder.as_markup()
+            )
+        return
+
+    elif callback.data.startswith("buy_item_"):
+        item_code = callback.data.replace("buy_item_", "")
+        with SessionLocal() as db:
+            user = user_crud.get_user_with_recharge(db, callback.from_user.id)
+            user_league = league_crud.join_league_group(db, callback.from_user.id)
+            league_multiplier = points_utils.get_league_multiplier(user_league.league)
+            
+            item = shop_crud.get_shop_item_by_code(db, item_code)
+            if not item:
+                await callback.answer("Товар не найден", show_alert=True)
+                return
+            
+            price = int(item.base_price * league_multiplier)
+            
+            # Check limits (2 per 12 hours)
+            purchase_count = shop_crud.get_user_purchases_today(db, callback.from_user.id, item_code)
+            if purchase_count >= 2:
+                await callback.answer(messages.SHOP_LIMIT_REACHED.replace("<blockquote>", "").replace("</blockquote>", ""), show_alert=True)
+                return
+            
+            # Check balance
+            if user.points < price:
+                needed = int(price - user.points)
+                await callback.answer(messages.SHOP_NOT_ENOUGH_POINTS.format(needed=needed).replace("<blockquote>", "").replace("</blockquote>", ""), show_alert=True)
+                return
+            
+            # Perform purchase
+            user.points -= price
+            if item.code == "extra_attempt":
+                user.analysis_attempts += 1
+            
+            shop_crud.record_purchase(db, callback.from_user.id, item.id, price)
+            db.commit()
+            
+            await callback.answer(messages.SHOP_PURCHASE_SUCCESS.replace("<blockquote>", "").replace("</blockquote>", ""), show_alert=True)
+            # Refresh shop view
+            callback.data = "shop_main"
+            await handle_all_callbacks(callback)
+        return
+
     action_type = None
     
     # Map callback data to ActionType enum
@@ -186,7 +279,9 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             page = int(parts[-1])
             is_onboarding = "onboard" in parts
             
-            current_page = messages.FAQ_PAGES.get(page)
+            # Choose template based on mode
+            pages = messages.ONBOARDING_PAGES if is_onboarding else messages.FAQ_PAGES
+            current_page = pages.get(page)
             text = f'<a href="{current_page["img"]}">&#8203;</a>{current_page["text"]}'
             
             builder = InlineKeyboardBuilder()
