@@ -44,11 +44,11 @@ def calculate_points(base_score: int, health_multiplier: float, league: League) 
         "health_multiplier": health_multiplier
     }
 
-def calculate_farm_income(active_cards: list) -> dict:
+def calculate_new_farm_card_income(active_cards: list) -> float:
     """
-    Calculates potential hourly income for a new card.
+    Вычисляет доходность новой карточки для гастро-фермы ОДИН РАЗ.
     Formula: Avg(Existing Cards) * Luck Multiplier (0.1x - 5x)
-    If no cards, Avg is assumed to be 30.
+    Если нет карточек, Avg = 30.
     """
     # 1. Calculate Average
     if not active_cards:
@@ -57,17 +57,25 @@ def calculate_farm_income(active_cards: list) -> dict:
         avg_value = sum(card.points_per_hour for card in active_cards) / len(active_cards)
     
     # 2. Luck Multiplier (0.1x - 5x)
-    # Using weighted random for farm luck
     luck_multiplier = random.choices(
         [0.1, 0.5, 1.0, 2.0, 5.0],
         weights=[20, 30, 35, 10, 5],
         k=1
     )[0]
     
-    potential_income = avg_value * luck_multiplier
-    
+    return round(avg_value * luck_multiplier, 2)
+
+
+def calculate_total_farm_income(active_cards: list) -> dict:
+    """
+    Вычисляет текущий общий почасовой доход всех активных карточек.
+    """
+    total_income = sum(card.points_per_hour for card in active_cards)
     return {
-        "hourly_income": round(potential_income, 2),
-        "farm_luck": luck_multiplier,
-        "avg_value": avg_value
+        "hourly_income": round(total_income, 2),
+        "avg_value": total_income / len(active_cards) if active_cards else 0.0
     }
+
+
+# Для обратной совместимости
+calculate_farm_income = calculate_total_farm_income

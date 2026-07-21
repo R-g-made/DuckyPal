@@ -11,14 +11,21 @@ def get_active_shop_items(db: Session):
     if not items:
         # Initialize default items
         extra_attempt = ShopItem(
-            name="Доп. попытка",
+            name="Доп. скан",
             code="extra_attempt",
             base_price=250.0
         )
+        bonus_x2 = ShopItem(
+            name="Бонус x2",
+            code="bonus_x2",
+            base_price=500.0
+        )
         db.add(extra_attempt)
+        db.add(bonus_x2)
         db.commit()
         db.refresh(extra_attempt)
-        items = [extra_attempt]
+        db.refresh(bonus_x2)
+        items = [extra_attempt, bonus_x2]
     return items
 
 def get_shop_item_by_code(db: Session, code: str):

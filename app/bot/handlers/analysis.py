@@ -2,7 +2,9 @@ from aiogram import Router, types, F, Bot
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.exceptions import TelegramBadRequest
 import asyncio
+import os
 from app.services.ai_service import ai_service
+from app.services.cloudinary_service import cloudinary_service
 from app.database.connection import SessionLocal
 from app.database.crud import user as user_crud
 from app.database.crud import action as action_crud
@@ -10,7 +12,8 @@ from app.database.crud import photo as photo_crud
 from app.database.crud import farm as farm_crud
 from app.database.crud import push as push_crud
 from app.database.models import ActionType
-from app.utils.points import calculate_farm_income
+from app.utils.points import calculate_farm_income, calculate_new_farm_card_income
+from app.utils.image_generator import generate_health_card
 from app.utils.keyboards import get_start_inline_keyboard
 import html
 from datetime import datetime, timedelta
@@ -71,6 +74,25 @@ async def handle_food_photo(message: types.Message, bot: Bot):
             return
 
         # 3. Process results and prepare response
+        # Calculate farm card income ONCE (with luck) using current active cards
+        with SessionLocal() as db:
+            active_cards = farm_crud.get_user_cards(db, message.from_user.id, only_active=True)
+        
+        farm_card_income = calculate_new_farm_card_income(active_cards)
+        
+        # Generate and upload health card image
+        score = ai_result.get("food_score", 0)
+        temp_img_path = f"temp_card_{message.from_user.id}_{int(datetime.now().timestamp())}.png"
+        image_url = ""
+        try:
+            generate_health_card(score, output_path=temp_img_path)
+            image_url = await cloudinary_service.upload_image(temp_img_path)
+            if os.path.exists(temp_img_path):
+                os.remove(temp_img_path)
+        except Exception as e:
+            import logging
+            logging.error(f"Image gen/upload error: {e}")
+
         with SessionLocal() as db:
             # Check for active multiplier
             active_mult = user_crud.get_active_multiplier(db, message.from_user.id)
@@ -83,28 +105,29 @@ async def handle_food_photo(message: types.Message, bot: Bot):
                 db, 
                 message.from_user.id, 
                 ai_result, 
-                file_path=telegram_link,
+                file_path=image_url or telegram_link, # Use Cloudinary URL if available
                 multiplier=multiplier_val
             )
             
             final_points = point_data['total']
+            luck_mult = point_data.get('luck_multiplier', 1.0)
             action_crud.log_action(db, message.from_user.id, ActionType.PHOTO_ANALYSIS)
             analysis_id = analysis_record.id
         
         # Step 1: Simple text results
-        bonus_text = f" (x{int(multiplier_val)} бонус!)" if multiplier_val > 1.0 else ""
+        bonus_text = f" (x{int(multiplier_val)} бонус!) 🐥" if multiplier_val > 1.0 else ""
+        jackpot_text = f" (ты урвал x{int(luck_mult)} джекпот)" if luck_mult > 1.0 else ""
+        
         response_text = messages.ANALYSIS_RESULTS.format(
+            image_url=image_url or "https://i.ibb.co/SwVQtQCx/Main-v1.png", # Fallback
             comment=ai_result['comment'],
-            proteins=ai_result['proteins'],
-            fats=ai_result['fats'],
-            carbs=ai_result['carbs'],
-            calories=ai_result['calories'],
             final_points=int(final_points),
+            jackpot_text=jackpot_text,
             bonus_text=bonus_text
         )
         
         builder = InlineKeyboardBuilder()
-        callback_data = f"analysis_step2|{analysis_id}"
+        callback_data = f"analysis_step2|{analysis_id}|{farm_card_income}"
         builder.row(types.InlineKeyboardButton(text="Продолжить", callback_data=callback_data))
         
         try:
@@ -140,7 +163,9 @@ async def show_farm_card_step(callback: types.CallbackQuery):
     """
     Step 2: Show farm card details and slot selection.
     """
-    analysis_id = int(callback.data.split("|")[1])
+    parts = callback.data.split("|")
+    analysis_id = int(parts[1])
+    farm_card_income = float(parts[2])
     
     with SessionLocal() as db:
         from app.database.models import PhotoAnalysis
@@ -156,9 +181,7 @@ async def show_farm_card_step(callback: types.CallbackQuery):
         ai_result = json.loads(analysis.result_text)
         
         # Recalculate income (or we could have stored it)
-        active_cards = farm_crud.get_user_cards(db, callback.from_user.id, only_active=True)
-        farm_data = calculate_farm_income(active_cards)
-        income = farm_data['hourly_income']
+        income = farm_card_income
         food = ai_result.get('food_name', 'Еда')
     
     text = messages.FARM_CARD_INFO.format(
@@ -167,7 +190,7 @@ async def show_farm_card_step(callback: types.CallbackQuery):
     )
     
     builder = InlineKeyboardBuilder()
-    builder.row(types.InlineKeyboardButton(text="Положить в гастроферму", callback_data=f"farm_slots|{analysis_id}",icon_custom_emoji_id="5472178859300363509"))
+    builder.row(types.InlineKeyboardButton(text="Положить в гастроферму", callback_data=f"farm_slots|{analysis_id}|{farm_card_income}",icon_custom_emoji_id="5472178859300363509"))
     builder.row(types.InlineKeyboardButton(text="Пропустить", callback_data="back_to_main"))
     
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=builder.as_markup())
@@ -181,7 +204,9 @@ async def select_farm_slot(callback: types.CallbackQuery):
     """
     Step 3: Select specific slot to add/replace.
     """
-    analysis_id = int(callback.data.split("|")[1])
+    parts = callback.data.split("|")
+    analysis_id = int(parts[1])
+    farm_card_income = float(parts[2])
     
     with SessionLocal() as db:
         active_cards = farm_crud.get_user_cards(db, callback.from_user.id, only_active=True)
@@ -198,7 +223,7 @@ async def select_farm_slot(callback: types.CallbackQuery):
         
         builder.row(types.InlineKeyboardButton(
             text=btn_text, 
-            callback_data=f"confirm_farm|{i}|{analysis_id}",
+            callback_data=f"confirm_farm|{i}|{analysis_id}|{farm_card_income}",
             icon_custom_emoji_id = icon_emoji_id
         ))
     
@@ -220,6 +245,7 @@ async def confirm_farm_addition(callback: types.CallbackQuery):
     parts = callback.data.split("|")
     slot_idx = int(parts[1])
     analysis_id = int(parts[2])
+    farm_card_income = float(parts[3])
     
     with SessionLocal() as db:
         from app.database.models import PhotoAnalysis
@@ -235,9 +261,7 @@ async def confirm_farm_addition(callback: types.CallbackQuery):
         ai_result = json.loads(analysis.result_text)
         food = ai_result.get('food_name', 'Еда')
         
-        active_cards = farm_crud.get_user_cards(db, callback.from_user.id, only_active=True)
-        farm_data = calculate_farm_income(active_cards)
-        income = farm_data['hourly_income']
+        income = farm_card_income
 
         farm_crud.add_to_farm_logic(db, callback.from_user.id, income, food_name=food, slot_idx=slot_idx)
          

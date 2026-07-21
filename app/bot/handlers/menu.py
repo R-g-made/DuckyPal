@@ -118,12 +118,13 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             
             builder = InlineKeyboardBuilder()
             
-            # Filter items based on user limits (2 per 12 hours)
+            # Filter items based on user limits
             available_items = []
             for item in items:
                 purchase_count = shop_crud.get_user_purchases_today(db, callback.from_user.id, item.code)
-                if purchase_count < 2:
-                    available_items.append(item)
+                limit = 1 if item.code == "bonus_x2" else 2
+                if purchase_count < limit:
+                    available_items.append((item, limit - purchase_count))
             
             if not available_items:
                 builder.row(types.InlineKeyboardButton(
@@ -132,11 +133,11 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
                     icon_custom_emoji_id= "5372833199137266697"
                 ))
             else:
-                for item in available_items:
+                for item, remaining_count in available_items:
                     price = int(item.base_price * league_multiplier)
 
                     builder.row(types.InlineKeyboardButton(
-                        text=f"{item.name} - {price} баллов", 
+                        text=f"{item.name} ({remaining_count} ост.) - {price} баллов", 
                         callback_data=f"buy_item_{item.code}",
                         icon_custom_emoji_id= "5350573405844317180"
                     ))
@@ -164,9 +165,10 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             
             price = int(item.base_price * league_multiplier)
             
-            # Check limits (2 per 12 hours)
+            # Check limits
             purchase_count = shop_crud.get_user_purchases_today(db, callback.from_user.id, item_code)
-            if purchase_count >= 2:
+            limit = 1 if item_code == "bonus_x2" else 2
+            if purchase_count >= limit:
                 await callback.answer(messages.SHOP_LIMIT_REACHED.replace("<blockquote>", "").replace("</blockquote>", ""), show_alert=True)
                 return
             
@@ -180,6 +182,8 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             user.points -= price
             if item.code == "extra_attempt":
                 user.analysis_attempts += 1
+            elif item.code == "bonus_x2":
+                user_crud.add_multiplier(db, callback.from_user.id, multiplier=2.0, uses=1)
             
             shop_crud.record_purchase(db, callback.from_user.id, item.id, price)
             db.commit()
