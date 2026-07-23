@@ -15,7 +15,7 @@ def generate_health_card(text="99/100", output_path="temp_card.png"):
     base = Image.open(input_path).convert("RGBA")
     
     # 2. Setup font
-    font_size = 95
+    font_size = 93
     font = None
     
     # Приоритетный путь к твоему шрифту Inter в папке assets
@@ -54,7 +54,7 @@ def generate_health_card(text="99/100", output_path="temp_card.png"):
     rotated = txt_img.rotate(2.76, resample=Image.BICUBIC, expand=True)
     
     # 5. Paste onto base (координаты из твоего рабочего примера)
-    base.paste(rotated, (1020, 465), rotated)
+    base.paste(rotated, (1000, 460), rotated)
     
     # 6. Save
     base.convert("RGB").save(output_path)
