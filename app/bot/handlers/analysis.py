@@ -85,7 +85,7 @@ async def handle_food_photo(message: types.Message, bot: Bot):
         temp_img_path = f"temp_card_{message.from_user.id}_{int(datetime.now().timestamp())}.png"
         image_url = ""
         try:
-            generate_health_card(score, output_path=temp_img_path)
+            generate_health_card(f"{score}/100", output_path=temp_img_path)
             image_url = await cloudinary_service.upload_image(temp_img_path)
             if os.path.exists(temp_img_path):
                 os.remove(temp_img_path)

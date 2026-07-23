@@ -1,9 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 import os
-from pathlib import Path
 
-def generate_health_card(text="99/100", output_path="temp_card.png"):
-    input_path = "Edited.png"
+def generate_card(text="39/100", input_path="Edited.png", output_path="result.png"):
     if not os.path.exists(input_path):
         print(f"Error: {input_path} not found")
         return
@@ -36,4 +34,7 @@ def generate_health_card(text="99/100", output_path="temp_card.png"):
     
     # 6. Save
     base.convert("RGB").save(output_path)
-    return output_path
+    print(f"Success! Saved to {output_path}. TEST: TEXT IS BLACK.")
+
+if __name__ == "__main__":
+    generate_card()
