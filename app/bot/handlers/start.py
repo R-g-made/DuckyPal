@@ -87,6 +87,12 @@ async def cmd_start(message: types.Message, bot: Bot, command: types.BotCommand 
         attempts = user.analysis_attempts
         points = int(user.points)
         
+        # Calculate recharge info
+        recharge_info = ""
+        if attempts < 3:
+            time_left = user_crud.get_time_to_next_attempt(user)
+            recharge_info = f"<i>(Скан восстановится через {time_left})</i>"
+        
         if is_new_user:
             # Show onboarding (How it works) for new users
             current_page = messages.ONBOARDING_PAGES.get(1)
@@ -133,7 +139,8 @@ async def cmd_start(message: types.Message, bot: Bot, command: types.BotCommand 
         attempts=attempts,
         points=points,
         league_name=league_name,
-        multiplier_text=multiplier_text
+        multiplier_text=multiplier_text,
+        recharge_info=recharge_info
     )
     
     await message.answer(

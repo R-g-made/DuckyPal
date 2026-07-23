@@ -391,6 +391,12 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
                 attempts = user.analysis_attempts
                 points = int(user.points)
 
+                # Calculate recharge info
+                recharge_info = ""
+                if attempts < 3:
+                    time_left_recharge = user_crud.get_time_to_next_attempt(user)
+                    recharge_info = f"<i>(Скан восстановится через {time_left_recharge})</i>"
+
                 # Check for active multiplier
                 active_mult = user_crud.get_active_multiplier(db, callback.from_user.id)
                 multiplier_text = ""
@@ -423,7 +429,8 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
                 attempts=attempts,
                 points=points,
                 league_name=league_name,
-                multiplier_text=multiplier_text
+                multiplier_text=multiplier_text,
+                recharge_info=recharge_info
             )
             
             await callback.message.edit_text(

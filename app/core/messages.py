@@ -3,7 +3,8 @@
 MAIN_MENU = (
     '<a href="https://i.ibb.co/SwVQtQCx/Main-v1.png">&#8203;</a>'
      "Привет, я утя <tg-emoji emoji-id=\"5350726942335214142\">👋</tg-emoji>, я помогу тебе контролировать твое питания!\n\n"
-    "<blockquote>У тебя осталось <b>{attempts} сканов</b> сегодня</blockquote>\n\n"
+    "<blockquote>У тебя осталось <b>{attempts} сканов</b> сегодня\n"
+    "{recharge_info}</blockquote>\n\n"
     "<b>{points} баллов</b> <tg-emoji emoji-id=\"5368646692650395057\">😊</tg-emoji> | Ранг: <b>{league_name}</b> <tg-emoji emoji-id=\"5357272691537650628\">🥇</tg-emoji>"
     "{multiplier_text}"
 )
