@@ -120,7 +120,13 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             
             # Filter items based on user limits
             available_items = []
+            active_mult = user_crud.get_active_multiplier(db, callback.from_user.id)
+            
             for item in items:
+                # Если это бонус x2, проверяем, нет ли уже активного бонуса
+                if item.code == "bonus_x2" and active_mult:
+                    continue
+                    
                 purchase_count = shop_crud.get_user_purchases_today(db, callback.from_user.id, item.code)
                 limit = 1 if item.code == "bonus_x2" else 2
                 if purchase_count < limit:
@@ -165,6 +171,13 @@ async def handle_all_callbacks(callback: types.CallbackQuery):
             
             price = int(item.base_price * league_multiplier)
             
+            # Check for active bonus if buying bonus_x2
+            if item_code == "bonus_x2":
+                active_mult = user_crud.get_active_multiplier(db, callback.from_user.id)
+                if active_mult:
+                    await callback.answer("У вас уже есть активный бонус! Дождитесь его завершения.", show_alert=True)
+                    return
+
             # Check limits
             purchase_count = shop_crud.get_user_purchases_today(db, callback.from_user.id, item_code)
             limit = 1 if item_code == "bonus_x2" else 2
